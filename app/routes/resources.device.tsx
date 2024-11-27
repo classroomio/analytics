@@ -42,17 +42,19 @@ export const DeviceCard = ({
     timezone: string;
 }) => {
     return (
-        <PaginatedTableCard
-            siteId={siteId}
-            interval={interval}
-            columnHeaders={["Device", "Visitors"]}
-            dataFetcher={useFetcher<typeof loader>()}
-            loaderUrl="/resources/device"
-            filters={filters}
-            onClick={(deviceModel) =>
-                onFilterChange({ ...filters, deviceModel })
-            }
-            timezone={timezone}
-        />
+        <div className="w-full p-3">
+            <PaginatedTableCard
+                siteId={siteId}
+                interval={interval}
+                columnHeaders={["Device", "Visitors"]}
+                dataFetcher={useFetcher<typeof loader>()}
+                loaderUrl="/resources/device"
+                filters={filters}
+                onClick={(deviceModel) =>
+                    onFilterChange({ ...filters, deviceModel })
+                }
+                timezone={timezone}
+            />
+        </div>
     );
 };

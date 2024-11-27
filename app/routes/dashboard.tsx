@@ -90,7 +90,8 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     const sitesByHits = analyticsEngine.getSitesOrderedByHits(
         `${MAX_RETENTION_DAYS}d`,
     );
-
+    // const sitesByHits: [string, number][] = [["classroomio.com", 23]];
+    console.log("by hit", await sitesByHits);
     const intervalType = getIntervalType(interval);
 
     // await all requests to AE then return the results
@@ -130,12 +131,38 @@ export default function Dashboard() {
             site,
             interval: data.interval,
         });
+
+        handleDropdownChange({
+            site,
+            interval: data.interval,
+        });
     }
+
+    function handleDropdownChange(newParams: {
+        site: string;
+        interval: string;
+    }) {
+        // Send message to parent window
+        window.parent.postMessage(
+            {
+                type: "urlUpdate",
+                params: newParams,
+            },
+            "http://localhost:5174",
+        ); // Replace with your parent window's origin
+    }
+
+    // Example usage in a dropdown component
 
     function changeInterval(interval: string) {
         setSearchParams((prev) => {
             prev.set("interval", interval);
             return prev;
+        });
+
+        handleDropdownChange({
+            site: data.sites[0],
+            interval: interval,
         });
     }
 
@@ -163,60 +190,8 @@ export default function Dashboard() {
     const userTimezone = getUserTimezone();
 
     return (
-        <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.8" }}>
-            <div className="w-full mb-4 flex gap-4 flex-wrap">
-                <div className="lg:basis-1/5-gap-4 sm:basis-1/4-gap-4 basis-1/2-gap-4">
-                    <Select
-                        defaultValue={data.siteId}
-                        onValueChange={(site) => changeSite(site)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {/* SelectItem explodes if given an empty string for `value` so coerce to @unknown */}
-                            {data.sites.map((siteId: string) => (
-                                <SelectItem
-                                    key={`k-${siteId}`}
-                                    value={siteId || "@unknown"}
-                                >
-                                    {siteId || "(unknown)"}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="lg:basis-1/6-gap-4 sm:basis-1/5-gap-4 basis-1/3-gap-4">
-                    <Select
-                        defaultValue={data.interval}
-                        onValueChange={(interval) => changeInterval(interval)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="today">Today</SelectItem>
-                            <SelectItem value="yesterday">Yesterday</SelectItem>
-                            <SelectItem value="1d">24 hours</SelectItem>
-                            <SelectItem value="7d">7 days</SelectItem>
-                            <SelectItem value="30d">30 days</SelectItem>
-                            <SelectItem value="90d">90 days</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="basis-auto flex">
-                    <div className="m-auto">
-                        <SearchFilterBadges
-                            filters={data.filters}
-                            onFilterDelete={handleFilterDelete}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="transition" style={{ opacity: loading ? 0.6 : 1 }}>
+        <div className="divide-y space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4">
                 <div className="w-full mb-4">
                     <StatsCard
                         siteId={data.siteId}
@@ -225,7 +200,69 @@ export default function Dashboard() {
                         timezone={userTimezone}
                     />
                 </div>
-                <div className="w-full mb-4">
+
+                <div className="flex items-center gap-4">
+                    <div className="w-full max-w-[250px] min-w-[120px]">
+                        <Select
+                            defaultValue={data.siteId}
+                            onValueChange={(site) => changeSite(site)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {/* SelectItem explodes if given an empty string for `value` so coerce to @unknown */}
+                                {data.sites.map((siteId: string) => (
+                                    <SelectItem
+                                        key={`k-${siteId}`}
+                                        value={siteId || "@unknown"}
+                                    >
+                                        {siteId || "(unknown)"}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="w-full max-w-[250px] min-w-[120px]">
+                        <Select
+                            defaultValue={data.interval}
+                            onValueChange={(interval) =>
+                                changeInterval(interval)
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="today">Today</SelectItem>
+                                <SelectItem value="yesterday">
+                                    Yesterday
+                                </SelectItem>
+                                <SelectItem value="1d">24 hours</SelectItem>
+                                <SelectItem value="7d">7 days</SelectItem>
+                                <SelectItem value="30d">30 days</SelectItem>
+                                <SelectItem value="90d">90 days</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </div>
+
+            {/* <div className="basis-auto flex"> */}
+            <div className="m-auto">
+                <SearchFilterBadges
+                    filters={data.filters}
+                    onFilterDelete={handleFilterDelete}
+                />
+            </div>
+            {/* </div> */}
+
+            <div
+                className="w-full transition py-4"
+                style={{ opacity: loading ? 0.6 : 1 }}
+            >
+                <div className="w-full">
                     <TimeSeriesCard
                         siteId={data.siteId}
                         interval={data.interval}
@@ -233,7 +270,10 @@ export default function Dashboard() {
                         timezone={userTimezone}
                     />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
+            </div>
+
+            <div className="divide-y">
+                <div className="grid grid-cols-1 md:grid-cols-2 divide-x">
                     <PathsCard
                         siteId={data.siteId}
                         interval={data.interval}
@@ -249,7 +289,8 @@ export default function Dashboard() {
                         timezone={userTimezone}
                     />
                 </div>
-                <div className="grid md:grid-cols-3 gap-4 mb-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-3 divide-x">
                     <BrowserCard
                         siteId={data.siteId}
                         interval={data.interval}

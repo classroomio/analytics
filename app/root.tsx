@@ -85,60 +85,18 @@ export const Layout = ({ children = [] }: { children: React.ReactNode }) => {
 };
 
 export default function App() {
-    const data = useLoaderData<typeof loader>();
+    // const data = useLoaderData<typeof loader>();
 
     return (
-        <div className="mt-4">
-            <header className="border-b-2 mb-8 py-2">
-                <nav className="flex justify-between items-center">
-                    <div className="flex items-center">
-                        <a href="/" className="text-lg font-bold">
-                            Counterscale
-                        </a>
-                        <img
-                            className="w-6 ml-1"
-                            src="/img/arrow.svg"
-                            alt="Counterscale Icon"
-                        />
-                    </div>
-                    <div className="flex items-center font-small font-medium text-md">
-                        <a href="/dashboard">Dashboard</a>
-                        <a
-                            href="/admin-redirect"
-                            target="_blank"
-                            className="hidden sm:inline-block ml-2"
-                        >
-                            Admin
-                        </a>
-                        <a
-                            href="https://github.com/benvinegar/counterscale"
-                            className="w-6 ml-2"
-                        >
-                            <img
-                                src="/github-mark.svg"
-                                alt="GitHub Logo"
-                                style={{
-                                    filter: "invert(21%) sepia(27%) saturate(271%) hue-rotate(113deg) brightness(97%) contrast(97%)",
-                                }}
-                            />
-                        </a>
-                    </div>
-                </nav>
+        <div className="md:p-4">
+            <header>
+                <h1 className="dark:text-white text-2xl md:text-3xl font-bold">
+                    Analytics
+                </h1>
             </header>
             <main role="main" className="w-full">
                 <Outlet />
             </main>
-
-            <footer className="py-4 flex justify-end text-s">
-                <div>
-                    Version{" "}
-                    <a
-                        href={`https://github.com/benvinegar/counterscale/commit/${data.version}`}
-                    >
-                        {data.version?.slice(0, 7)}
-                    </a>
-                </div>
-            </footer>
         </div>
     );
 }

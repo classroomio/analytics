@@ -8,7 +8,7 @@ import { SearchFilters } from "~/lib/types";
 interface PaginatedTableCardProps {
     siteId: string;
     interval: string;
-    dataFetcher: any;
+    dataFetcher: any | undefined; // Changed EntrypointBranded to any
     columnHeaders: string[];
     filters?: SearchFilters;
     loaderUrl: string;
@@ -52,9 +52,11 @@ const PaginatedTableCard = ({
 
     const hasMore = countsByProperty.length === 10;
     return (
-        <Card className={dataFetcher.state === "loading" ? "opacity-60" : ""}>
+        <Card
+            className={`${dataFetcher.state === "loading" ? "opacity-60" : ""} `}
+        >
             {countsByProperty ? (
-                <div className="grid grid-rows-[auto,40px] h-full">
+                <div className="grid grid-rows-[auto,40px] h-full overflow-x-hidden">
                     <TableCard
                         countByProperty={countsByProperty}
                         columnHeaders={columnHeaders}

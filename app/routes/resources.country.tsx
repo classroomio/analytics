@@ -65,15 +65,17 @@ export const CountryCard = ({
     timezone: string;
 }) => {
     return (
-        <PaginatedTableCard
-            siteId={siteId}
-            interval={interval}
-            columnHeaders={["Country", "Visitors"]}
-            dataFetcher={useFetcher<typeof loader>()}
-            loaderUrl="/resources/country"
-            filters={filters}
-            onClick={(country) => onFilterChange({ ...filters, country })}
-            timezone={timezone}
-        />
+        <div className="w-full p-3">
+            <PaginatedTableCard
+                siteId={siteId}
+                interval={interval}
+                columnHeaders={["Country", "Visitors"]}
+                dataFetcher={useFetcher<typeof loader>()}
+                loaderUrl="/resources/country"
+                filters={filters}
+                onClick={(country) => onFilterChange({ ...filters, country })}
+                timezone={timezone}
+            />
+        </div>
     );
 };

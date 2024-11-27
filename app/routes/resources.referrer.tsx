@@ -43,15 +43,17 @@ export const ReferrerCard = ({
     timezone: string;
 }) => {
     return (
-        <PaginatedTableCard
-            siteId={siteId}
-            interval={interval}
-            columnHeaders={["Referrer", "Visitors", "Views"]}
-            dataFetcher={useFetcher<typeof loader>()}
-            loaderUrl="/resources/referrer"
-            filters={filters}
-            onClick={(referrer) => onFilterChange({ ...filters, referrer })}
-            timezone={timezone}
-        />
+        <div className="w-full md:px-3 py-3">
+            <PaginatedTableCard
+                siteId={siteId}
+                interval={interval}
+                columnHeaders={["Referrer", "Visitors", "Views"]}
+                dataFetcher={useFetcher<typeof loader>()}
+                loaderUrl="/resources/referrer"
+                filters={filters}
+                onClick={(referrer) => onFilterChange({ ...filters, referrer })}
+                timezone={timezone}
+            />
+        </div>
     );
 };

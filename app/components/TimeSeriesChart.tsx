@@ -84,9 +84,9 @@ export default function TimeSeriesChart({
                 <Tooltip labelFormatter={tooltipDateFormatter} />
                 <Area
                     dataKey="views"
-                    stroke="#F46A3D"
+                    stroke="#1D4ED8"
                     strokeWidth="2"
-                    fill="#F99C35"
+                    fill="rgba(29, 78, 216, 0.3)"
                 />
             </AreaChart>
         </ResponsiveContainer>
