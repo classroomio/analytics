@@ -77,8 +77,8 @@ export const TimeSeriesCard = ({
     }, [siteId, interval, filters, timezone]);
 
     return (
-        <Card>
-            <CardContent>
+        <Card className="w-full border border-green-500">
+            <CardContent className="w-full border border-red-500">
                 <div className="h-72 w-full">
                     {chartData && (
                         <TimeSeriesChart

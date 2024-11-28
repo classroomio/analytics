@@ -34,15 +34,15 @@ export default function TableCard({
 
     return (
         <Table className="w-full p-3">
-            <TableRow className="flex items-center justify-between p-2 font-semibold">
-                <TableHead className="font-semibold w-[70%] capitalize">
+            <TableRow className="flex items-center justify-between p-2 font-semibold ">
+                <TableHead className="font-semibold w-[70%] capitalize ">
                     {columnHeaders[0]}
                 </TableHead>
-                <div className="flex items-center text-center w-[30%]">
+                <div className="flex items-center text-center flex-1 ">
                     {columnHeaders.slice(1).map((header) => (
                         <TableHead
                             key={header}
-                            className="font-semibold w-full text capitalize"
+                            className="font-semibold w-full capitalize"
                         >
                             {header}
                         </TableHead>
@@ -66,7 +66,7 @@ export default function TableCard({
                                 className="absolute left-0 top-0 h-full bg-blue-300/30 -z-10"
                                 style={{ width: barChartPercentages[index] }}
                             />
-                            <TableCell className="w-[80%] ">
+                            <TableCell className="w-[70%]">
                                 {onClick ? (
                                     <button
                                         onClick={() => onClick(key as string)}
@@ -78,9 +78,9 @@ export default function TableCard({
                                     label
                                 )}
                             </TableCell>
-                            <div className="flex items-center w-[30%] font-semibold">
-                                <TableCell className="flex items-center justify-end gap-2 w-full">
-                                    <div className="w-full text-center flex-1">
+                            <div className="flex items-center justify-center flex-1 font-semibold ">
+                                <TableCell className="flex items-center justify-center w-full flex-1">
+                                    <div className="w-full text-center">
                                         <p className="text-sm w-full">
                                             {countFormatter.format(
                                                 parseInt(item[1], 10),
@@ -89,8 +89,8 @@ export default function TableCard({
                                     </div>
                                 </TableCell>
                                 {item.length > 2 && item[2] !== undefined && (
-                                    <TableCell className="flex items-center justify-end gap-2 w-full">
-                                        <div className="w-full text-center flex-1">
+                                    <TableCell className="flex items-center justify-center w-full flex-1">
+                                        <div className="w-full text-center">
                                             <p className="text-sm w-full">
                                                 {countFormatter.format(
                                                     parseInt(item[2], 10),

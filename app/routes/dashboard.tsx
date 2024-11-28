@@ -87,10 +87,12 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     // sites by hits: This is to populate the "sites" dropdown. We query the full retention
     //                period (90 days) so that any site that has been active in the past 90 days
     //                will show up in the dropdown.
+
     const sitesByHits = analyticsEngine.getSitesOrderedByHits(
         `${MAX_RETENTION_DAYS}d`,
     );
-    // const sitesByHits: [string, number][] = [["classroomio.com", 23]];
+
+    // const sitesByHits: [string, number][] = [[siteId, 23]];
     console.log("by hit", await sitesByHits);
     const intervalType = getIntervalType(interval);
 
@@ -158,11 +160,6 @@ export default function Dashboard() {
         setSearchParams((prev) => {
             prev.set("interval", interval);
             return prev;
-        });
-
-        handleDropdownChange({
-            site: data.sites[0],
-            interval: interval,
         });
     }
 
