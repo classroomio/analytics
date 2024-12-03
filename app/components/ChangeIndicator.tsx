@@ -18,15 +18,15 @@ const ChangeIndicator = ({
             return <ArrowUp size={16} strokeWidth={0.75} />;
         if (isIncreased === false)
             return <ArrowDown size={16} strokeWidth={0.75} />;
-        return null;
+        return "-";
     };
 
     return (
         <span
-            className={`rounded p-1 ${getIndicatorStyles()} flex items-center gap-2 w-fit`}
+            className={`rounded py-1 px-2 ${getIndicatorStyles()} flex items-center gap-2 w-fit`}
         >
             {renderArrow()}
-            <p className="font-semibold text-xs">{percentageChange}</p>
+            <p className="font-semibold text-sm">{percentageChange}</p>
         </span>
     );
 };

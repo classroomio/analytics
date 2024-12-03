@@ -42,7 +42,7 @@ export const DeviceCard = ({
     timezone: string;
 }) => {
     return (
-        <div className="w-full p-3">
+        <div className="w-full md:px-3 py-3">
             <PaginatedTableCard
                 siteId={siteId}
                 interval={interval}

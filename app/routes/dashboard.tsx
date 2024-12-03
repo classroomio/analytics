@@ -31,11 +31,15 @@ import { SearchFilters } from "~/lib/types";
 import SearchFilterBadges from "~/components/SearchFilterBadges";
 import { TimeSeriesCard } from "./resources.timeseries";
 import { StatsCard } from "./resources.stats";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export const meta: MetaFunction = () => {
     return [
-        { title: "Counterscale: Web Analytics" },
-        { name: "description", content: "Counterscale: Web Analytics" },
+        { title: "ClassroomIO: Web Analytics" },
+        {
+            name: "description",
+            content: "ClassromIO: Web Analytics powered by counterscale",
+        },
     ];
 };
 
@@ -91,8 +95,6 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     const sitesByHits = analyticsEngine.getSitesOrderedByHits(
         `${MAX_RETENTION_DAYS}d`,
     );
-
-    // const sitesByHits: [string, number][] = [[siteId, 23]];
     console.log("by hit", await sitesByHits);
     const intervalType = getIntervalType(interval);
 
@@ -124,43 +126,57 @@ export default function Dashboard() {
     const navigation = useNavigation();
     const loading = navigation.state === "loading";
 
-    function changeSite(site: string) {
-        // intentionally not updating prev params; don't want search
-        // filters (e.g. referrer, path) to persist
-
-        // TODO: might revisit if this is considered unexpected behavior
-        setSearchParams({
-            site,
-            interval: data.interval,
-        });
-
-        handleDropdownChange({
-            site,
-            interval: data.interval,
-        });
-    }
-
-    function handleDropdownChange(newParams: {
-        site: string;
-        interval: string;
-    }) {
-        // Send message to parent window
-        window.parent.postMessage(
-            {
-                type: "urlUpdate",
-                params: newParams,
-            },
-            "http://localhost:5174",
-        ); // Replace with your parent window's origin
-    }
+    const intervalOrder = [
+        {
+            value: "today",
+            title: "today",
+        },
+        {
+            value: "yesterday",
+            title: "yesterday",
+        },
+        {
+            value: "1d",
+            title: "24 hours",
+        },
+        {
+            value: "7d",
+            title: "7 days",
+        },
+        {
+            value: "30d",
+            title: "30 days",
+        },
+        {
+            value: "90d",
+            title: "90 days",
+        },
+    ];
 
     // Example usage in a dropdown component
-
     function changeInterval(interval: string) {
         setSearchParams((prev) => {
             prev.set("interval", interval);
             return prev;
         });
+    }
+    function switchInterval(direction: "prev" | "next") {
+        const currentIndex = intervalOrder.findIndex(
+            (order) => order.value === data.interval,
+        );
+        if (currentIndex === -1) return; // Invalid interval
+
+        let newIndex;
+        if (direction === "prev") {
+            newIndex = currentIndex > 0 ? currentIndex - 1 : currentIndex;
+        } else {
+            newIndex =
+                currentIndex < intervalOrder.length - 1
+                    ? currentIndex + 1
+                    : currentIndex;
+        }
+
+        changeInterval(intervalOrder[newIndex].value);
     }
 
     const handleFilterChange = (filters: SearchFilters) => {
@@ -187,8 +203,8 @@ export default function Dashboard() {
     const userTimezone = getUserTimezone();
 
     return (
-        <div className="divide-y space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4">
+        <div className="space-y-6">
+            <div className="md:sticky dark:bg-black md:z-50 top-0 flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4">
                 <div className="w-full mb-4">
                     <StatsCard
                         siteId={data.siteId}
@@ -197,33 +213,10 @@ export default function Dashboard() {
                         timezone={userTimezone}
                     />
                 </div>
-
-                <div className="flex items-center gap-4">
-                    <div className="w-full max-w-[250px] min-w-[120px]">
+                <div className="flex items-center gap-2">
+                    <div className="w-full max-w-[200px] min-w-[150px]">
                         <Select
-                            defaultValue={data.siteId}
-                            onValueChange={(site) => changeSite(site)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {/* SelectItem explodes if given an empty string for `value` so coerce to @unknown */}
-                                {data.sites.map((siteId: string) => (
-                                    <SelectItem
-                                        key={`k-${siteId}`}
-                                        value={siteId || "@unknown"}
-                                    >
-                                        {siteId || "(unknown)"}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="w-full max-w-[250px] min-w-[120px]">
-                        <Select
-                            defaultValue={data.interval}
+                            value={data.interval}
                             onValueChange={(interval) =>
                                 changeInterval(interval)
                             }
@@ -232,16 +225,33 @@ export default function Dashboard() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="today">Today</SelectItem>
-                                <SelectItem value="yesterday">
-                                    Yesterday
-                                </SelectItem>
-                                <SelectItem value="1d">24 hours</SelectItem>
-                                <SelectItem value="7d">7 days</SelectItem>
-                                <SelectItem value="30d">30 days</SelectItem>
-                                <SelectItem value="90d">90 days</SelectItem>
+                                {intervalOrder.map((interval, key) => {
+                                    return (
+                                        <SelectItem
+                                            key={key}
+                                            className="capitalize"
+                                            value={interval.value}
+                                        >
+                                            {interval.title}
+                                        </SelectItem>
+                                    );
+                                })}
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="flex items-center justify-center divide-x">
+                        <button
+                            onClick={() => switchInterval("prev")}
+                            className="bg-gray-100 hover:bg-gray-300 flex items-center justify-center p-2"
+                        >
+                            <ChevronLeft strokeWidth={0.75} />
+                        </button>
+                        <button
+                            onClick={() => switchInterval("next")}
+                            className="bg-gray-100 hover:bg-gray-300 flex items-center justify-center p-2"
+                        >
+                            <ChevronRight strokeWidth={0.75} />
+                        </button>
                     </div>
                 </div>
             </div>
@@ -270,7 +280,7 @@ export default function Dashboard() {
             </div>
 
             <div className="divide-y">
-                <div className="grid grid-cols-1 md:grid-cols-2 divide-x">
+                <div className="grid grid-cols-1 md:grid-cols-2 divide-x [&>*]:h-full">
                     <PathsCard
                         siteId={data.siteId}
                         interval={data.interval}
@@ -287,7 +297,7 @@ export default function Dashboard() {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 divide-x">
+                <div className="grid grid-cols-1 md:grid-cols-3 divide-x ">
                     <BrowserCard
                         siteId={data.siteId}
                         interval={data.interval}

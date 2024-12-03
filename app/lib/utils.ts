@@ -3,6 +3,7 @@ import { twMerge } from "tailwind-merge";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { MetricChange, MetricData } from "./types";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -107,4 +108,73 @@ export function getDateTimeRange(interval: string, tz: string) {
         startDate: localDateTime.toDate(),
         endDate: localEndDateTime.toDate(),
     };
+}
+
+export function formatDuration(seconds: number): string {
+    if (!seconds || seconds === 0) return "0s";
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    if (minutes === 0) return `${remainingSeconds}s`;
+    return `${minutes}m${remainingSeconds}s`;
+}
+
+export function calculateMetricsChange(
+    current: MetricData,
+    previous: MetricData,
+): Record<keyof MetricData, MetricChange> {
+    const formatValue = (
+        metric: keyof MetricData,
+        value: number,
+    ): string | number => {
+        switch (metric) {
+            case "bounceRate":
+                return `${value.toFixed(1)}%`;
+            case "duration":
+                return formatDuration(value);
+            default:
+                return value;
+        }
+    };
+
+    const calculateChange = (
+        currentVal: number,
+        previousVal: number,
+    ): {
+        percentage: string;
+        isIncreased: boolean | null;
+    } => {
+        // Handle edge cases
+        if (previousVal === 0) {
+            return {
+                percentage: "0%",
+                isIncreased: null,
+            };
+        }
+
+        const change = ((currentVal - previousVal) / previousVal) * 100;
+        return {
+            percentage: `${Math.abs(change).toFixed(0)}%`,
+            isIncreased: change > 0 ? true : change < 0 ? false : null, // null for no change
+        };
+    };
+
+    return Object.keys(current).reduce(
+        (acc, metric) => {
+            const key = metric as keyof MetricData;
+            const currentValue = current[key];
+            const previousValue = previous[key];
+            const change = calculateChange(currentValue, previousValue);
+
+            acc[key] = {
+                value: formatValue(key, currentValue),
+                percentage: change.percentage,
+                isIncreased: change.isIncreased,
+            };
+
+            return acc;
+        },
+        {} as Record<keyof MetricData, MetricChange>,
+    );
 }

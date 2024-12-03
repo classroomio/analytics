@@ -13,6 +13,7 @@ import {
     ScrollRestoration,
     useLoaderData,
 } from "@remix-run/react";
+import { useEffect } from "react";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
@@ -31,6 +32,15 @@ export const Layout = ({ children = [] }: { children: React.ReactNode }) => {
         origin: "counterscale.dev",
         url: "https://counterscale.dev/",
     };
+
+    useEffect(() => {
+        const theme = localStorage.getItem("theme");
+        if (theme == "dark") {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+    }, []);
 
     return (
         <html lang="en">
@@ -70,7 +80,7 @@ export const Layout = ({ children = [] }: { children: React.ReactNode }) => {
                 <Links />
             </head>
             <body>
-                <div className="container mx-auto">{children}</div>
+                <div className="p-4 mx-auto">{children}</div>
                 <ScrollRestoration />
                 <Scripts />
                 <script
@@ -88,7 +98,7 @@ export default function App() {
     // const data = useLoaderData<typeof loader>();
 
     return (
-        <div className="md:p-4">
+        <div className="py-4 lg:p-4">
             <header>
                 <h1 className="dark:text-white text-2xl md:text-3xl font-bold">
                     Analytics

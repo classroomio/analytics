@@ -25,8 +25,8 @@ describe("resources.timeseries loader", () => {
             context.analyticsEngine,
             "getViewsGroupedByInterval",
         ).mockResolvedValue([
-            ["2024-01-15T00:00:00Z", 100],
-            ["2024-01-16T00:00:00Z", 200],
+            ["2024-01-15T00:00:00Z", 100, 200, 300],
+            ["2024-01-16T00:00:00Z", 200, 150, 500],
         ]);
 
         // mock out responsive container to just return a standard div, otherwise
@@ -83,8 +83,18 @@ describe("TimeSeriesCard", () => {
         submit: vi.fn(),
         data: {
             chartData: [
-                { date: "2024-01-15T00:00:00Z", views: 100 },
-                { date: "2024-01-16T00:00:00Z", views: 200 },
+                {
+                    date: "2024-01-15T00:00:00Z",
+                    views: 100,
+                    visits: 40,
+                    visitors: 30,
+                },
+                {
+                    date: "2024-01-16T00:00:00Z",
+                    views: 200,
+                    visits: 40,
+                    visitors: 30,
+                },
             ],
             intervalType: "DAY",
         },
