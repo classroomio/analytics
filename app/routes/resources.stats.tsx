@@ -2,7 +2,6 @@ import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import {
     calculateMetricsChange,
-    formatDuration,
     getFiltersFromSearchParams,
     paramsFromUrl,
 } from "~/lib/utils";
@@ -19,23 +18,13 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     const filters = getFiltersFromSearchParams(url.searchParams);
 
     const counts = await analyticsEngine.getCounts(site, interval, tz, filters);
-    const metrics = await analyticsEngine.getEngagementMetrics(
-        site,
-        interval,
-        tz,
-        filters,
-    );
 
     const allMetrics = {
         current: {
             ...counts.current,
-            bounceRate: metrics.current.bounceRate,
-            duration: metrics.current.duration,
         },
         previous: {
             ...counts.previous,
-            bounceRate: metrics.previous.bounceRate,
-            duration: metrics.previous.duration,
         },
     };
 
@@ -62,37 +51,19 @@ export const StatsCard = ({
 
     const { metrics, changes } = dataFetcher.data || {};
 
-    console.log("metrics", metrics, "changes", changes);
-
-    const formatValue = (
-        label: keyof MetricData,
-        value: number | undefined,
-    ) => {
+    const formatValue = (value: number | undefined) => {
         if (value === undefined || value === null) return "-";
 
-        switch (label) {
-            case "bounceRate":
-                return `${value.toFixed(1)}%`;
-            case "duration":
-                return formatDuration(value);
-            default:
-                return new Intl.NumberFormat("en", {
-                    notation: "compact",
-                }).format(value);
-        }
+        return new Intl.NumberFormat("en", {
+            notation: "compact",
+        }).format(value);
     };
 
     const metricCards: Array<{
         label: keyof MetricData;
         formatter?: (value: number) => string;
-    }> = [
-        { label: "views" },
-        { label: "visits" },
-        { label: "visitors" },
-        { label: "bounceRate" },
-        { label: "duration" },
-    ];
-    // In your component, after fetching the dat
+    }> = [{ label: "views" }, { label: "visits" }, { label: "visitors" }];
+
     useEffect(() => {
         const params = {
             site: siteId,
@@ -108,6 +79,7 @@ export const StatsCard = ({
         // NOTE: dataFetcher is intentionally omitted from the useEffect dependency array
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [siteId, interval, filters, timezone]);
+
     return (
         <div className="flex flex-wrap justify-start items-center lg:justify-around gap-10 w-full md:w-fit rounded-md py-2 lg:p-2">
             {metricCards.map(({ label }) => {
@@ -124,7 +96,7 @@ export const StatsCard = ({
                             {label}
                         </p>
                         <p className="font-bold text-xl md:text-3xl">
-                            {formatValue(label, currentValue)}
+                            {formatValue(currentValue)}
                         </p>
                         <div>
                             {change && (

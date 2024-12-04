@@ -72,12 +72,12 @@
     }
 
     /* Or alternatively, you can use this more specific selector */
-    .dark body {
+    body .dark {
         @apply text-white;
     }
 
     /* You can also add this to ensure all text elements inherit the color */
-    .dark * {
+    * .dark {
         @apply text-white;
     }
 }

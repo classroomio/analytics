@@ -13,34 +13,45 @@ import {
     ScrollRestoration,
     useLoaderData,
 } from "@remix-run/react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
 export const loader = ({ context, request }: LoaderFunctionArgs) => {
     const url = new URL(request.url);
+
+    const theme = url.searchParams.get("theme");
+
     return json({
         version: context.cloudflare?.env?.CF_PAGES_COMMIT_SHA,
         origin: url.origin,
         url: request.url,
+        theme: theme,
     });
 };
 
 export const Layout = ({ children = [] }: { children: React.ReactNode }) => {
+    const [theme, setTheme] = useState("false");
     const data = useLoaderData<typeof loader>() ?? {
         version: "unknown",
         origin: "counterscale.dev",
         url: "https://counterscale.dev/",
+        theme: "false",
     };
 
+    const bodyRef = useRef<HTMLBodyElement>(null);
+
     useEffect(() => {
-        const theme = localStorage.getItem("theme");
-        if (theme == "dark") {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
+        const getTheme = data?.theme;
+        if (getTheme) {
+            setTheme(getTheme);
         }
-    }, []);
+        if (theme === "true") {
+            bodyRef.current?.classList.add("dark");
+        } else {
+            bodyRef.current?.classList.remove("dark");
+        }
+    }, [theme]);
 
     return (
         <html lang="en">
@@ -79,7 +90,7 @@ export const Layout = ({ children = [] }: { children: React.ReactNode }) => {
                 <Meta />
                 <Links />
             </head>
-            <body>
+            <body ref={bodyRef}>
                 <div className="p-4 mx-auto">{children}</div>
                 <ScrollRestoration />
                 <Scripts />

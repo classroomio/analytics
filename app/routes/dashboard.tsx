@@ -62,6 +62,7 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     const url = new URL(request.url);
 
     let interval;
+
     try {
         interval = url.searchParams.get("interval") || "7d";
     } catch (err) {
@@ -82,6 +83,7 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     }
 
     const siteId = url.searchParams.get("site") || "";
+
     const actualSiteId = siteId === "@unknown" ? "" : siteId;
 
     const filters = getFiltersFromSearchParams(url.searchParams);
@@ -95,7 +97,6 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     const sitesByHits = analyticsEngine.getSitesOrderedByHits(
         `${MAX_RETENTION_DAYS}d`,
     );
-    console.log("by hit", await sitesByHits);
     const intervalType = getIntervalType(interval);
 
     // await all requests to AE then return the results
@@ -204,7 +205,7 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-6">
-            <div className="md:sticky dark:bg-black md:z-50 top-0 flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4">
+            <div className="md:sticky dark:bg-black bg-white md:z-50 top-0 flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4">
                 <div className="w-full mb-4">
                     <StatsCard
                         siteId={data.siteId}
@@ -242,13 +243,13 @@ export default function Dashboard() {
                     <div className="flex items-center justify-center divide-x">
                         <button
                             onClick={() => switchInterval("prev")}
-                            className="bg-gray-100 hover:bg-gray-300 flex items-center justify-center p-2"
+                            className="bg-gray-100 text-black hover:bg-gray-300 flex items-center justify-center p-2"
                         >
                             <ChevronLeft strokeWidth={0.75} />
                         </button>
                         <button
                             onClick={() => switchInterval("next")}
-                            className="bg-gray-100 hover:bg-gray-300 flex items-center justify-center p-2"
+                            className="bg-gray-100 text-black hover:bg-gray-300 flex items-center justify-center p-2"
                         >
                             <ChevronRight strokeWidth={0.75} />
                         </button>
@@ -256,14 +257,12 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* <div className="basis-auto flex"> */}
             <div className="m-auto">
                 <SearchFilterBadges
                     filters={data.filters}
                     onFilterDelete={handleFilterDelete}
                 />
             </div>
-            {/* </div> */}
 
             <div
                 className="w-full transition py-4"
@@ -279,7 +278,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <div className="divide-y">
+            <div className="divide-y border">
                 <div className="grid grid-cols-1 md:grid-cols-2 divide-x [&>*]:h-full">
                     <PathsCard
                         siteId={data.siteId}

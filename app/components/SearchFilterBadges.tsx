@@ -1,5 +1,4 @@
 import React from "react";
-
 import { SearchFilters } from "~/lib/types";
 
 interface SearchFiltersProps {

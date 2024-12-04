@@ -1,6 +1,6 @@
 import { ColumnMappingToType, ColumnMappings } from "./schema";
 
-import { EngagementResult, SearchFilters } from "~/lib/types";
+import { SearchFilters } from "~/lib/types";
 
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -419,90 +419,6 @@ export class AnalyticsEngineAPI {
         } catch (error) {
             console.error("Error fetching counts:", error);
             throw new Error("Failed to fetch counts");
-        }
-    }
-
-    async getEngagementMetrics(
-        siteId: string,
-        interval: string,
-        tz?: string,
-        filters: SearchFilters = {},
-    ) {
-        const { startIntervalSql, endIntervalSql } = intervalToSql(
-            interval,
-            tz,
-        );
-        const prevInterval = getPreviousInterval(interval);
-        const { startIntervalSql: prevStartSql, endIntervalSql: prevEndSql } =
-            intervalToSql(prevInterval, tz);
-        const filterStr = filtersToSql(filters);
-
-        const query = `
-            SELECT 
-                SUM(IF(${ColumnMappings.newSession} = 1, _sample_interval, 0)) as total_visits,
-                SUM(IF(${ColumnMappings.pageViews} = 1 AND ${ColumnMappings.newSession} = 1, _sample_interval, 0)) as bounce_visits,
-                AVG(IF(${ColumnMappings.newSession} = 1, ${ColumnMappings.visitDuration}, 0.0)) as avg_duration
-            FROM metricsDataset
-            WHERE timestamp >= ${startIntervalSql}
-                AND timestamp < ${endIntervalSql}
-                AND ${ColumnMappings.siteId} = '${siteId}'
-                ${filterStr}`;
-
-        const prevQuery = `
-            SELECT 
-                SUM(IF(${ColumnMappings.newSession} = 1, _sample_interval, 0)) as total_visits,
-                SUM(IF(${ColumnMappings.pageViews} = 1 AND ${ColumnMappings.newSession} = 1, _sample_interval, 0)) as bounce_visits,
-                AVG(IF(${ColumnMappings.newSession} = 1, ${ColumnMappings.visitDuration}, 0.0)) as avg_duration
-            FROM metricsDataset
-            WHERE timestamp >= ${prevStartSql}
-                AND timestamp < ${prevEndSql}
-                AND ${ColumnMappings.siteId} = '${siteId}'
-                ${filterStr}`;
-
-        try {
-            const [currentResponse, previousResponse] = await Promise.all([
-                this.query(query),
-                this.query(prevQuery),
-            ]);
-
-            if (!currentResponse.ok || !previousResponse.ok) {
-                throw new Error("Failed to fetch engagement metrics");
-            }
-
-            const currentData = await currentResponse.json();
-            const previousData = await previousResponse.json();
-
-            const calculateBounceRate = (data: any | unknown) => {
-                const total = Number(data.total_visits || 0);
-                const bounces = Number(data.bounce_visits || 0);
-                return total > 0 ? (bounces / total) * 100 : 0;
-            };
-
-            return {
-                current: {
-                    bounceRate: calculateBounceRate(
-                        (currentData as EngagementResult["current"] | any)
-                            ?.data[0],
-                    ),
-                    duration: Number(
-                        (currentData as EngagementResult["current"] | any)
-                            ?.data[0]?.avg_duration || 0,
-                    ),
-                },
-                previous: {
-                    bounceRate: calculateBounceRate(
-                        (previousData as EngagementResult["previous"] | any)
-                            ?.data[0],
-                    ),
-                    duration: Number(
-                        (previousData as EngagementResult["previous"] | any)
-                            ?.data[0]?.avg_duration || 0,
-                    ),
-                },
-            };
-        } catch (error) {
-            console.error("Error fetching engagement metrics:", error);
-            throw new Error("Failed to fetch engagement metrics");
         }
     }
 
