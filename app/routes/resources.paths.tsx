@@ -45,15 +45,17 @@ export const PathsCard = ({
     timezone: string;
 }) => {
     return (
-        <PaginatedTableCard
-            siteId={siteId}
-            interval={interval}
-            columnHeaders={["Path", "Visitors", "Views"]}
-            dataFetcher={useFetcher<typeof loader>()}
-            filters={filters}
-            loaderUrl="/resources/paths"
-            onClick={(path) => onFilterChange({ ...filters, path })}
-            timezone={timezone}
-        />
+        <div className="w-full md:px-3 py-3">
+            <PaginatedTableCard
+                siteId={siteId}
+                interval={interval}
+                columnHeaders={["Path", "Visitors", "Views"]}
+                dataFetcher={useFetcher<typeof loader>()}
+                filters={filters}
+                loaderUrl="/resources/paths"
+                onClick={(path) => onFilterChange({ ...filters, path })}
+                timezone={timezone}
+            />
+        </div>
     );
 };

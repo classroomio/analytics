@@ -32,4 +32,7 @@ export const ColumnMappings = {
 
     // this record is a new session (resets after 30m inactivity)
     newSession: "double2",
+
+    pageViews: "double3",
+    visitDuration: "double4",
 } as const;

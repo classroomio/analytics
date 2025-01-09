@@ -3,6 +3,7 @@ import { twMerge } from "tailwind-merge";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { MetricChange, MetricData } from "./types";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -107,4 +108,49 @@ export function getDateTimeRange(interval: string, tz: string) {
         startDate: localDateTime.toDate(),
         endDate: localEndDateTime.toDate(),
     };
+}
+
+export function calculateMetricsChange(
+    current: MetricData,
+    previous: MetricData,
+): Record<keyof MetricData, MetricChange> {
+    const calculateChange = (
+        currentVal: number,
+        previousVal: number,
+    ): {
+        percentage: string;
+        isIncreased: boolean | null;
+    } => {
+        // Handle edge cases
+        if (previousVal === 0) {
+            return {
+                percentage: "0%",
+                isIncreased: null,
+            };
+        }
+
+        const change = ((currentVal - previousVal) / previousVal) * 100;
+        return {
+            percentage: `${Math.abs(change).toFixed(0)}%`,
+            isIncreased: change > 0 ? true : change < 0 ? false : null, // null for no change
+        };
+    };
+
+    return Object.keys(current).reduce(
+        (acc, metric) => {
+            const key = metric as keyof MetricData;
+            const currentValue = current[key];
+            const previousValue = previous[key];
+            const change = calculateChange(currentValue, previousValue);
+
+            acc[key] = {
+                value: currentValue,
+                percentage: change.percentage,
+                isIncreased: change.isIncreased,
+            };
+
+            return acc;
+        },
+        {} as Record<keyof MetricData, MetricChange>,
+    );
 }

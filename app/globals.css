@@ -67,11 +67,17 @@
 }
 
 @layer base {
-    * {
-        @apply border-border;
+    .dark {
+        @apply text-white;
     }
 
-    body {
-        @apply bg-background text-foreground;
+    /* Or alternatively, you can use this more specific selector */
+    body .dark {
+        @apply text-white;
+    }
+
+    /* You can also add this to ensure all text elements inherit the color */
+    * .dark {
+        @apply text-white;
     }
 }

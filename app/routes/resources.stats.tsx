@@ -1,10 +1,14 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { getFiltersFromSearchParams, paramsFromUrl } from "~/lib/utils";
+import {
+    calculateMetricsChange,
+    getFiltersFromSearchParams,
+    paramsFromUrl,
+} from "~/lib/utils";
 import { useEffect } from "react";
 import { useFetcher } from "@remix-run/react";
-import { Card } from "~/components/ui/card";
-import { SearchFilters } from "~/lib/types";
+import { MetricChange, MetricData, SearchFilters } from "~/lib/types";
+import ChangeIndicator from "~/components/ChangeIndicator";
 
 export async function loader({ context, request }: LoaderFunctionArgs) {
     const { analyticsEngine } = context;
@@ -15,11 +19,21 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
 
     const counts = await analyticsEngine.getCounts(site, interval, tz, filters);
 
-    return json({
-        views: counts.views,
-        visits: counts.visits,
-        visitors: counts.visitors,
-    });
+    const allMetrics = {
+        current: {
+            ...counts.current,
+        },
+        previous: {
+            ...counts.previous,
+        },
+    };
+
+    const changes = calculateMetricsChange(
+        allMetrics.current,
+        allMetrics.previous,
+    );
+
+    return json({ metrics: allMetrics, changes });
 }
 
 export const StatsCard = ({
@@ -35,8 +49,20 @@ export const StatsCard = ({
 }) => {
     const dataFetcher = useFetcher<typeof loader>();
 
-    const { views, visits, visitors } = dataFetcher.data || {};
-    const countFormatter = Intl.NumberFormat("en", { notation: "compact" });
+    const { metrics, changes } = dataFetcher.data || {};
+
+    const formatValue = (value: number | undefined) => {
+        if (value === undefined || value === null) return "-";
+
+        return new Intl.NumberFormat("en", {
+            notation: "compact",
+        }).format(value);
+    };
+
+    const metricCards: Array<{
+        label: keyof MetricData;
+        formatter?: (value: number) => string;
+    }> = [{ label: "views" }, { label: "visits" }, { label: "visitors" }];
 
     useEffect(() => {
         const params = {
@@ -55,29 +81,34 @@ export const StatsCard = ({
     }, [siteId, interval, filters, timezone]);
 
     return (
-        <Card>
-            <div className="p-4 pl-6">
-                <div className="grid grid-cols-3 gap-10 items-end">
-                    <div>
-                        <div className="text-md">Views</div>
-                        <div className="text-4xl">
-                            {views ? countFormatter.format(views) : "-"}
+        <div className="flex flex-wrap justify-start items-center lg:justify-around gap-10 w-full md:w-fit rounded-md py-2 lg:p-2">
+            {metricCards.map(({ label }) => {
+                const change = changes?.[label] as MetricChange;
+                const currentValue =
+                    metrics?.current[label as keyof MetricData];
+
+                return (
+                    <span
+                        key={label}
+                        className="flex flex-col gap-2 items-center text-center capitalize"
+                    >
+                        <p className="font-bold text-sm tracking-wide">
+                            {label}
+                        </p>
+                        <p className="font-bold text-xl md:text-3xl">
+                            {formatValue(currentValue)}
+                        </p>
+                        <div>
+                            {change && (
+                                <ChangeIndicator
+                                    isIncreased={change.isIncreased}
+                                    percentageChange={change.percentage}
+                                />
+                            )}
                         </div>
-                    </div>
-                    <div>
-                        <div className="text-md sm:text-lg">Visits</div>
-                        <div className="text-4xl">
-                            {visits ? countFormatter.format(visits) : "-"}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-md sm:text-lg">Visitors</div>
-                        <div className="text-4xl">
-                            {visitors ? countFormatter.format(visitors) : "-"}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Card>
+                    </span>
+                );
+            })}
+        </div>
     );
 };

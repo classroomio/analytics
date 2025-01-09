@@ -8,7 +8,6 @@ import {
 } from "~/lib/utils";
 import { useEffect } from "react";
 import { useFetcher } from "@remix-run/react";
-import { Card, CardContent } from "~/components/ui/card";
 import TimeSeriesChart from "~/components/TimeSeriesChart";
 import { SearchFilters } from "~/lib/types";
 
@@ -32,11 +31,18 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
             filters,
         );
 
-    const chartData: { date: string; views: number }[] = [];
+    const chartData: {
+        date: string;
+        views: number;
+        visitors: number;
+        visits: number;
+    }[] = [];
     viewsGroupedByInterval.forEach((row) => {
         chartData.push({
             date: row[0],
             views: row[1],
+            visitors: row[2],
+            visits: row[3],
         });
     });
 
@@ -77,18 +83,16 @@ export const TimeSeriesCard = ({
     }, [siteId, interval, filters, timezone]);
 
     return (
-        <Card>
-            <CardContent>
-                <div className="h-72 pt-6 -m-4 -ml-8 sm:m-0">
-                    {chartData && (
-                        <TimeSeriesChart
-                            data={chartData}
-                            intervalType={intervalType}
-                            timezone={timezone}
-                        />
-                    )}
-                </div>
-            </CardContent>
-        </Card>
+        <div className="w-screen lg:w-full -ml-10">
+            <div className="h-96 w-full ">
+                {chartData && (
+                    <TimeSeriesChart
+                        data={chartData}
+                        intervalType={intervalType}
+                        timezone={timezone}
+                    />
+                )}
+            </div>
+        </div>
     );
 };

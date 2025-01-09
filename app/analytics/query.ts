@@ -82,6 +82,24 @@ export function intervalToSql(interval: string, tz?: string) {
  *   }
  *
  * */
+
+function getPreviousInterval(interval: string): string {
+    switch (interval) {
+        case "today":
+            return "yesterday";
+        case "yesterday":
+            return "2d"; // This will work with existing intervalToSql
+        case "7days":
+            return "14d";
+        case "30days":
+            return "60d";
+        case "90days":
+            return "180d";
+        default:
+            return "1d";
+    }
+}
+
 function generateEmptyRowsOverInterval(
     intervalType: "DAY" | "HOUR",
     startDateTime: Date,
@@ -173,19 +191,31 @@ export class AnalyticsEngineAPI {
     }
 
     async query(query: string) {
-        return fetch(this.defaultUrl, {
+        const response = await fetch(this.defaultUrl, {
             method: "POST",
             body: query,
             headers: this.defaultHeaders,
         });
+
+        // Add error logging
+        if (!response.ok) {
+            const text = await response.text(); // Get raw response text
+            console.error("API Error Response:", {
+                status: response.status,
+                statusText: response.statusText,
+                body: text,
+            });
+        }
+
+        return response;
     }
 
     async getViewsGroupedByInterval(
         siteId: string,
         intervalType: "DAY" | "HOUR",
-        startDateTime: Date, // start date/time in local timezone
-        endDateTime: Date, // end date/time in local timezone
-        tz?: string, // local timezone
+        startDateTime: Date,
+        endDateTime: Date,
+        tz?: string,
         filters: SearchFilters = {},
     ) {
         let intervalCount = 1;
@@ -221,29 +251,31 @@ export class AnalyticsEngineAPI {
         const localStartTime = dayjs(startDateTime).tz(tz).utc();
         const localEndTime = dayjs(endDateTime).tz(tz).utc();
 
+        // Simplified query that directly calculates views, visitors, and visits
         const query = `
-            SELECT SUM(_sample_interval) as count,
-
-            /* interval start needs local timezone, e.g. 00:00 in America/New York means start of day in NYC */
-            toStartOfInterval(timestamp, INTERVAL '${intervalCount}' ${intervalType}, '${tz}') as _bucket,
-
-            /* output as UTC */
-            toDateTime(_bucket, 'Etc/UTC') as bucket
+            SELECT 
+                toStartOfInterval(timestamp, INTERVAL '${intervalCount}' ${intervalType}, '${tz}') as _bucket,
+                toDateTime(_bucket, 'Etc/UTC') as bucket,
+                SUM(_sample_interval) as views,
+                SUM(IF(${ColumnMappings.newVisitor} = 1, _sample_interval, 0)) as visitors,
+                SUM(IF(${ColumnMappings.newSession} = 1, _sample_interval, 0)) as visits
             FROM metricsDataset
-            WHERE timestamp >= toDateTime('${localStartTime.format("YYYY-MM-DD HH:mm:ss")}') 
-								AND timestamp < toDateTime('${localEndTime.format("YYYY-MM-DD HH:mm:ss")}')
+            WHERE timestamp >= toDateTime('${localStartTime.format("YYYY-MM-DD HH:mm:ss")}')
+                AND timestamp < toDateTime('${localEndTime.format("YYYY-MM-DD HH:mm:ss")}')
                 AND ${ColumnMappings.siteId} = '${siteId}'
                 ${filterStr}
             GROUP BY _bucket
             ORDER BY _bucket ASC`;
 
         type SelectionSet = {
-            count: number;
             bucket: string;
+            views: number;
+            visitors: number;
+            visits: number;
         };
 
         const queryResult = this.query(query);
-        const returnPromise = new Promise<[string, number][]>(
+        const returnPromise = new Promise<[string, number, number, number][]>(
             (resolve, reject) =>
                 (async () => {
                     const response = await queryResult;
@@ -255,30 +287,47 @@ export class AnalyticsEngineAPI {
                     const responseData =
                         (await response.json()) as AnalyticsQueryResult<SelectionSet>;
 
-                    // note this query will return sparse data (i.e. only rows where count > 0)
-                    // merge returnedRows with initial rows to fill in any gaps
+                    // Merge with initial rows and convert to array format
                     const rowsByDateTime = responseData.data.reduce(
                         (accum, row) => {
-                            const utcDateTime = new Date(row["bucket"]);
+                            const utcDateTime = new Date(row.bucket);
                             const key = dayjs(utcDateTime).format(
                                 "YYYY-MM-DD HH:mm:ss",
                             );
-                            accum[key] = Number(row["count"]);
+                            accum[key] = {
+                                views: Number(row.views),
+                                visitors: Number(row.visitors),
+                                visits: Number(row.visits),
+                            };
                             return accum;
                         },
-                        initialRows,
+                        Object.keys(initialRows).reduce(
+                            (acc, key) => {
+                                acc[key] = { views: 0, visitors: 0, visits: 0 };
+                                return acc;
+                            },
+                            {} as Record<
+                                string,
+                                {
+                                    views: number;
+                                    visitors: number;
+                                    visits: number;
+                                }
+                            >,
+                        ),
                     );
 
-                    // return as sorted array of tuples (i.e. [datetime, count])
-                    const sortedRows = Object.entries(rowsByDateTime).sort(
-                        (a, b) => {
-                            if (a[0] < b[0]) return -1;
-                            else if (a[0] > b[0]) return 1;
-                            else return 0;
-                        },
-                    );
+                    // Convert to array format [datetime, views, visitors, visits]
+                    const sortedRows = Object.entries(rowsByDateTime)
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .map(([date, counts]) => [
+                            date,
+                            counts.views,
+                            counts.visitors,
+                            counts.visits,
+                        ]);
 
-                    resolve(sortedRows);
+                    resolve(sortedRows as [string, number, number, number][]);
                 })(),
         );
         return returnPromise;
@@ -290,63 +339,87 @@ export class AnalyticsEngineAPI {
         tz?: string,
         filters: SearchFilters = {},
     ) {
-        // defaults to 1 day if not specified
-        const siteIdColumn = ColumnMappings["siteId"];
-
+        // Get current period interval
         const { startIntervalSql, endIntervalSql } = intervalToSql(
             interval,
             tz,
         );
-
         const filterStr = filtersToSql(filters);
 
+        // For previous period, adjust the interval
+        const prevInterval = getPreviousInterval(interval);
+        const { startIntervalSql: prevStartSql, endIntervalSql: prevEndSql } =
+            intervalToSql(prevInterval, tz);
+
         const query = `
-            SELECT SUM(_sample_interval) as count,
-                ${ColumnMappings.newVisitor} as isVisitor,
-                ${ColumnMappings.newSession} as isVisit
+            SELECT 
+                SUM(_sample_interval) as views,
+                SUM(IF(${ColumnMappings.newVisitor} = 1, _sample_interval, 0)) as visitors,
+                SUM(IF(${ColumnMappings.newSession} = 1, _sample_interval, 0)) as visits
             FROM metricsDataset
-            WHERE timestamp >= ${startIntervalSql} AND timestamp < ${endIntervalSql}
-                ${filterStr}
-            AND ${siteIdColumn} = '${siteId}'
-            GROUP BY isVisitor, isVisit
-            ORDER BY isVisitor, isVisit ASC`;
+            WHERE timestamp >= ${startIntervalSql}
+                AND timestamp < ${endIntervalSql}
+                AND ${ColumnMappings.siteId} = '${siteId}'
+                ${filterStr}`;
 
-        type SelectionSet = {
-            count: number;
-            isVisitor: number;
-            isVisit: number;
-        };
+        const prevQuery = `
+            SELECT 
+                SUM(_sample_interval) as views,
+                SUM(IF(${ColumnMappings.newVisitor} = 1, _sample_interval, 0)) as visitors,
+                SUM(IF(${ColumnMappings.newSession} = 1, _sample_interval, 0)) as visits
+            FROM metricsDataset
+            WHERE timestamp >= ${prevStartSql}
+                AND timestamp < ${prevEndSql}
+                AND ${ColumnMappings.siteId} = '${siteId}'
+                ${filterStr}`;
 
-        const queryResult = this.query(query);
+        try {
+            const [currentResponse, previousResponse] = await Promise.all([
+                this.query(query),
+                this.query(prevQuery),
+            ]);
 
-        const returnPromise = new Promise<AnalyticsCountResult>(
-            (resolve, reject) =>
-                (async () => {
-                    const response = await queryResult;
+            if (!currentResponse.ok || !previousResponse.ok) {
+                throw new Error("Failed to fetch counts");
+            }
 
-                    if (!response.ok) {
-                        reject(response.statusText);
-                    }
+            const currentData = await currentResponse.json();
+            const previousData = await previousResponse.json();
 
-                    const responseData =
-                        (await response.json()) as AnalyticsQueryResult<SelectionSet>;
-
-                    const counts: AnalyticsCountResult = {
-                        views: 0,
-                        visitors: 0,
-                        visits: 0,
-                    };
-
-                    // NOTE: note it's possible to get no results, or half results (i.e. a row where isVisit=1 but
-                    //       no row where isVisit=0), so this code makes no assumption on number of results
-                    responseData.data.forEach((row) => {
-                        accumulateCountsFromRowResult(counts, row);
-                    });
-                    resolve(counts);
-                })(),
-        );
-
-        return returnPromise;
+            return {
+                current: {
+                    views: Number(
+                        (currentData as { data: { views: number }[] }).data[0]
+                            ?.views || 0,
+                    ),
+                    visitors: Number(
+                        (currentData as { data: { visitors: number }[] })
+                            .data[0]?.visitors || 0,
+                    ),
+                    visits: Number(
+                        (currentData as { data: { visits: number }[] }).data[0]
+                            ?.visits || 0,
+                    ),
+                },
+                previous: {
+                    views: Number(
+                        (previousData as { data: { views: number }[] }).data[0]
+                            ?.views || 0,
+                    ),
+                    visitors: Number(
+                        (previousData as { data: { visitors: number }[] })
+                            .data[0]?.visitors || 0,
+                    ),
+                    visits: Number(
+                        (previousData as { data: { visits: number }[] }).data[0]
+                            ?.visits || 0,
+                    ),
+                },
+            };
+        } catch (error) {
+            console.error("Error fetching counts:", error);
+            throw new Error("Failed to fetch counts");
+        }
     }
 
     async getVisitorCountByColumn<T extends keyof typeof ColumnMappings>(

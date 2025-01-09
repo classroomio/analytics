@@ -19,7 +19,7 @@ describe("resources.stats loader", () => {
             "https://example.com/resources/stats?site=test-site&interval=24h&timezone=UTC",
         );
 
-        const response = await loader({ context, request } as any);
+        const response = await loader({ context, request } as undefined | any);
         const data = await response.json();
 
         expect(mockGetCounts).toHaveBeenCalledWith(

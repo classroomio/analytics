@@ -1,19 +1,19 @@
 import PropTypes, { InferProps } from "prop-types";
 
 import {
-    AreaChart,
-    Area,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
+    BarChart,
+    Legend,
+    Bar,
 } from "recharts";
 
 export default function TimeSeriesChart({
     data,
     intervalType,
-    timezone,
 }: InferProps<typeof TimeSeriesChart.propTypes>) {
     // chart doesn't really work no data points, so just bail out
     if (data.length === 0) {
@@ -21,7 +21,8 @@ export default function TimeSeriesChart({
     }
 
     // get the max integer value of data views
-    const maxViews = Math.max(...data.map((item) => item.views));
+
+    console.log("chart data", data);
 
     function xAxisDateFormatter(date: string): string {
         const dateObj = new Date(date);
@@ -46,26 +47,13 @@ export default function TimeSeriesChart({
         }
     }
 
-    function tooltipDateFormatter(date: string): string {
-        const dateObj = new Date(date);
-
-        // convert from utc to local time
-        dateObj.setMinutes(dateObj.getMinutes() - dateObj.getTimezoneOffset());
-
-        return (
-            dateObj.toLocaleString("en-us", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "numeric",
-            }) + ` ${timezone}`
-        );
-    }
-
     return (
-        <ResponsiveContainer width="100%" height="100%" minWidth={100}>
-            <AreaChart
+        <ResponsiveContainer
+            width="100%"
+            height="100%"
+            className="w-full min-w-full"
+        >
+            <BarChart
                 width={500}
                 height={400}
                 data={data}
@@ -76,19 +64,31 @@ export default function TimeSeriesChart({
                     bottom: 0,
                 }}
             >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickFormatter={xAxisDateFormatter} />
-
-                {/* manually setting maxViews vs using recharts "dataMax" key cause it doesnt seem to work */}
-                <YAxis dataKey="views" domain={[0, maxViews]} />
-                <Tooltip labelFormatter={tooltipDateFormatter} />
-                <Area
-                    dataKey="views"
-                    stroke="#F46A3D"
-                    strokeWidth="2"
-                    fill="#F99C35"
+                <CartesianGrid
+                    strokeDasharray="1 0"
+                    horizontal={true}
+                    vertical={false}
                 />
-            </AreaChart>
+                <XAxis
+                    dataKey="date"
+                    tickFormatter={xAxisDateFormatter}
+                    axisLine={true}
+                    tickLine={false}
+                />
+                <YAxis
+                    tickFormatter={(value) =>
+                        new Intl.NumberFormat("en", {
+                            notation: "compact",
+                            maximumFractionDigits: 1,
+                        }).format(value)
+                    }
+                />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="views" stackId="a" fill="#2563EB" />
+                <Bar dataKey="visits" stackId="a" fill="#3B82F6" />
+                <Bar dataKey="visitors" stackId="a" fill="#60A5FA" />
+            </BarChart>
         </ResponsiveContainer>
     );
 }

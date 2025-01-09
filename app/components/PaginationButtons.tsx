@@ -1,5 +1,4 @@
 import React from "react";
-
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface PaginationButtonsProps {
@@ -23,7 +22,7 @@ const PaginationButtons: React.FC<PaginationButtonsProps> = ({
                 className={
                     page > 1
                         ? `text-primary hover:cursor-pointer`
-                        : `text-orange-300`
+                        : `text-blue-700`
                 }
             >
                 <ArrowLeft />
@@ -35,7 +34,7 @@ const PaginationButtons: React.FC<PaginationButtonsProps> = ({
                 className={
                     hasMore
                         ? "text-primary hover:cursor-pointer"
-                        : "text-orange-300"
+                        : "text-blue-700"
                 }
             >
                 <ArrowRight />

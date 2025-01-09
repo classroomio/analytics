@@ -31,11 +31,15 @@ import { SearchFilters } from "~/lib/types";
 import SearchFilterBadges from "~/components/SearchFilterBadges";
 import { TimeSeriesCard } from "./resources.timeseries";
 import { StatsCard } from "./resources.stats";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export const meta: MetaFunction = () => {
     return [
-        { title: "Counterscale: Web Analytics" },
-        { name: "description", content: "Counterscale: Web Analytics" },
+        { title: "ClassroomIO: Web Analytics" },
+        {
+            name: "description",
+            content: "ClassromIO: Web Analytics powered by counterscale",
+        },
     ];
 };
 
@@ -58,6 +62,7 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     const url = new URL(request.url);
 
     let interval;
+
     try {
         interval = url.searchParams.get("interval") || "7d";
     } catch (err) {
@@ -78,6 +83,7 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     }
 
     const siteId = url.searchParams.get("site") || "";
+
     const actualSiteId = siteId === "@unknown" ? "" : siteId;
 
     const filters = getFiltersFromSearchParams(url.searchParams);
@@ -87,10 +93,10 @@ export const loader = async ({ context, request }: LoaderFunctionArgs) => {
     // sites by hits: This is to populate the "sites" dropdown. We query the full retention
     //                period (90 days) so that any site that has been active in the past 90 days
     //                will show up in the dropdown.
+
     const sitesByHits = analyticsEngine.getSitesOrderedByHits(
         `${MAX_RETENTION_DAYS}d`,
     );
-
     const intervalType = getIntervalType(interval);
 
     // await all requests to AE then return the results
@@ -121,22 +127,57 @@ export default function Dashboard() {
     const navigation = useNavigation();
     const loading = navigation.state === "loading";
 
-    function changeSite(site: string) {
-        // intentionally not updating prev params; don't want search
-        // filters (e.g. referrer, path) to persist
+    const intervalOrder = [
+        {
+            value: "today",
+            title: "today",
+        },
+        {
+            value: "yesterday",
+            title: "yesterday",
+        },
+        {
+            value: "1d",
+            title: "24 hours",
+        },
+        {
+            value: "7d",
+            title: "7 days",
+        },
+        {
+            value: "30d",
+            title: "30 days",
+        },
+        {
+            value: "90d",
+            title: "90 days",
+        },
+    ];
 
-        // TODO: might revisit if this is considered unexpected behavior
-        setSearchParams({
-            site,
-            interval: data.interval,
-        });
-    }
-
+    // Example usage in a dropdown component
     function changeInterval(interval: string) {
         setSearchParams((prev) => {
             prev.set("interval", interval);
             return prev;
         });
+    }
+    function switchInterval(direction: "prev" | "next") {
+        const currentIndex = intervalOrder.findIndex(
+            (order) => order.value === data.interval,
+        );
+        if (currentIndex === -1) return; // Invalid interval
+
+        let newIndex;
+        if (direction === "prev") {
+            newIndex = currentIndex > 0 ? currentIndex - 1 : currentIndex;
+        } else {
+            newIndex =
+                currentIndex < intervalOrder.length - 1
+                    ? currentIndex + 1
+                    : currentIndex;
+        }
+
+        changeInterval(intervalOrder[newIndex].value);
     }
 
     const handleFilterChange = (filters: SearchFilters) => {
@@ -163,60 +204,8 @@ export default function Dashboard() {
     const userTimezone = getUserTimezone();
 
     return (
-        <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.8" }}>
-            <div className="w-full mb-4 flex gap-4 flex-wrap">
-                <div className="lg:basis-1/5-gap-4 sm:basis-1/4-gap-4 basis-1/2-gap-4">
-                    <Select
-                        defaultValue={data.siteId}
-                        onValueChange={(site) => changeSite(site)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {/* SelectItem explodes if given an empty string for `value` so coerce to @unknown */}
-                            {data.sites.map((siteId: string) => (
-                                <SelectItem
-                                    key={`k-${siteId}`}
-                                    value={siteId || "@unknown"}
-                                >
-                                    {siteId || "(unknown)"}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="lg:basis-1/6-gap-4 sm:basis-1/5-gap-4 basis-1/3-gap-4">
-                    <Select
-                        defaultValue={data.interval}
-                        onValueChange={(interval) => changeInterval(interval)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="today">Today</SelectItem>
-                            <SelectItem value="yesterday">Yesterday</SelectItem>
-                            <SelectItem value="1d">24 hours</SelectItem>
-                            <SelectItem value="7d">7 days</SelectItem>
-                            <SelectItem value="30d">30 days</SelectItem>
-                            <SelectItem value="90d">90 days</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="basis-auto flex">
-                    <div className="m-auto">
-                        <SearchFilterBadges
-                            filters={data.filters}
-                            onFilterDelete={handleFilterDelete}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="transition" style={{ opacity: loading ? 0.6 : 1 }}>
+        <div className="space-y-6">
+            <div className="md:sticky dark:bg-black bg-white md:z-50 top-0 flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4">
                 <div className="w-full mb-4">
                     <StatsCard
                         siteId={data.siteId}
@@ -225,7 +214,61 @@ export default function Dashboard() {
                         timezone={userTimezone}
                     />
                 </div>
-                <div className="w-full mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="w-full max-w-[200px] min-w-[150px]">
+                        <Select
+                            value={data.interval}
+                            onValueChange={(interval) =>
+                                changeInterval(interval)
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {intervalOrder.map((interval, key) => {
+                                    return (
+                                        <SelectItem
+                                            key={key}
+                                            className="capitalize"
+                                            value={interval.value}
+                                        >
+                                            {interval.title}
+                                        </SelectItem>
+                                    );
+                                })}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center justify-center divide-x">
+                        <button
+                            onClick={() => switchInterval("prev")}
+                            className="bg-gray-100 text-black hover:bg-gray-300 flex items-center justify-center p-2"
+                        >
+                            <ChevronLeft strokeWidth={0.75} />
+                        </button>
+                        <button
+                            onClick={() => switchInterval("next")}
+                            className="bg-gray-100 text-black hover:bg-gray-300 flex items-center justify-center p-2"
+                        >
+                            <ChevronRight strokeWidth={0.75} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="m-auto">
+                <SearchFilterBadges
+                    filters={data.filters}
+                    onFilterDelete={handleFilterDelete}
+                />
+            </div>
+
+            <div
+                className="w-full transition py-4"
+                style={{ opacity: loading ? 0.6 : 1 }}
+            >
+                <div className="w-full">
                     <TimeSeriesCard
                         siteId={data.siteId}
                         interval={data.interval}
@@ -233,7 +276,10 @@ export default function Dashboard() {
                         timezone={userTimezone}
                     />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
+            </div>
+
+            <div className="divide-y border">
+                <div className="grid grid-cols-1 md:grid-cols-2 divide-x [&>*]:h-full">
                     <PathsCard
                         siteId={data.siteId}
                         interval={data.interval}
@@ -249,7 +295,8 @@ export default function Dashboard() {
                         timezone={userTimezone}
                     />
                 </div>
-                <div className="grid md:grid-cols-3 gap-4 mb-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-3 divide-x ">
                     <BrowserCard
                         siteId={data.siteId}
                         interval={data.interval}

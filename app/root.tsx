@@ -13,24 +13,45 @@ import {
     ScrollRestoration,
     useLoaderData,
 } from "@remix-run/react";
+import { useEffect, useRef, useState } from "react";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
 export const loader = ({ context, request }: LoaderFunctionArgs) => {
     const url = new URL(request.url);
+
+    const theme = url.searchParams.get("theme");
+
     return json({
         version: context.cloudflare?.env?.CF_PAGES_COMMIT_SHA,
         origin: url.origin,
         url: request.url,
+        theme: theme,
     });
 };
 
 export const Layout = ({ children = [] }: { children: React.ReactNode }) => {
+    const [theme, setTheme] = useState("false");
     const data = useLoaderData<typeof loader>() ?? {
         version: "unknown",
         origin: "counterscale.dev",
         url: "https://counterscale.dev/",
+        theme: "false",
     };
+
+    const bodyRef = useRef<HTMLBodyElement>(null);
+
+    useEffect(() => {
+        const getTheme = data?.theme;
+        if (getTheme) {
+            setTheme(getTheme);
+        }
+        if (theme === "true") {
+            bodyRef.current?.classList.add("dark");
+        } else {
+            bodyRef.current?.classList.remove("dark");
+        }
+    }, [theme]);
 
     return (
         <html lang="en">
@@ -69,8 +90,8 @@ export const Layout = ({ children = [] }: { children: React.ReactNode }) => {
                 <Meta />
                 <Links />
             </head>
-            <body>
-                <div className="container mx-auto">{children}</div>
+            <body ref={bodyRef}>
+                <div className="p-4 mx-auto">{children}</div>
                 <ScrollRestoration />
                 <Scripts />
                 <script
@@ -85,60 +106,18 @@ export const Layout = ({ children = [] }: { children: React.ReactNode }) => {
 };
 
 export default function App() {
-    const data = useLoaderData<typeof loader>();
+    // const data = useLoaderData<typeof loader>();
 
     return (
-        <div className="mt-4">
-            <header className="border-b-2 mb-8 py-2">
-                <nav className="flex justify-between items-center">
-                    <div className="flex items-center">
-                        <a href="/" className="text-lg font-bold">
-                            Counterscale
-                        </a>
-                        <img
-                            className="w-6 ml-1"
-                            src="/img/arrow.svg"
-                            alt="Counterscale Icon"
-                        />
-                    </div>
-                    <div className="flex items-center font-small font-medium text-md">
-                        <a href="/dashboard">Dashboard</a>
-                        <a
-                            href="/admin-redirect"
-                            target="_blank"
-                            className="hidden sm:inline-block ml-2"
-                        >
-                            Admin
-                        </a>
-                        <a
-                            href="https://github.com/benvinegar/counterscale"
-                            className="w-6 ml-2"
-                        >
-                            <img
-                                src="/github-mark.svg"
-                                alt="GitHub Logo"
-                                style={{
-                                    filter: "invert(21%) sepia(27%) saturate(271%) hue-rotate(113deg) brightness(97%) contrast(97%)",
-                                }}
-                            />
-                        </a>
-                    </div>
-                </nav>
+        <div className="py-4 lg:p-4">
+            <header>
+                <h1 className="dark:text-white text-2xl md:text-3xl font-bold">
+                    Analytics
+                </h1>
             </header>
             <main role="main" className="w-full">
                 <Outlet />
             </main>
-
-            <footer className="py-4 flex justify-end text-s">
-                <div>
-                    Version{" "}
-                    <a
-                        href={`https://github.com/benvinegar/counterscale/commit/${data.version}`}
-                    >
-                        {data.version?.slice(0, 7)}
-                    </a>
-                </div>
-            </footer>
         </div>
     );
 }

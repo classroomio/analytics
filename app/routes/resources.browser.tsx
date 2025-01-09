@@ -41,17 +41,19 @@ export const BrowserCard = ({
     timezone: string;
 }) => {
     return (
-        <PaginatedTableCard
-            siteId={siteId}
-            interval={interval}
-            columnHeaders={["Browser", "Visitors"]}
-            dataFetcher={useFetcher<typeof loader>()}
-            loaderUrl="/resources/browser"
-            filters={filters}
-            onClick={(browserName) =>
-                onFilterChange({ ...filters, browserName })
-            }
-            timezone={timezone}
-        />
+        <div className="w-full md:px-3 py-3">
+            <PaginatedTableCard
+                siteId={siteId}
+                interval={interval}
+                columnHeaders={["Browser", "Visitors"]}
+                dataFetcher={useFetcher<typeof loader>()}
+                loaderUrl="/resources/browser"
+                filters={filters}
+                onClick={(browserName) =>
+                    onFilterChange({ ...filters, browserName })
+                }
+                timezone={timezone}
+            />
+        </div>
     );
 };

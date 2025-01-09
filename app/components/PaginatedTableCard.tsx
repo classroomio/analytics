@@ -8,7 +8,7 @@ import { SearchFilters } from "~/lib/types";
 interface PaginatedTableCardProps {
     siteId: string;
     interval: string;
-    dataFetcher: any;
+    dataFetcher: undefined | any; // Changed EntrypointBranded to any
     columnHeaders: string[];
     filters?: SearchFilters;
     loaderUrl: string;
@@ -52,19 +52,25 @@ const PaginatedTableCard = ({
 
     const hasMore = countsByProperty.length === 10;
     return (
-        <Card className={dataFetcher.state === "loading" ? "opacity-60" : ""}>
+        <Card
+            className={`${dataFetcher.state === "loading" ? "opacity-60" : ""}flex flex-col min-h-full`}
+        >
             {countsByProperty ? (
-                <div className="grid grid-rows-[auto,40px] h-full">
-                    <TableCard
-                        countByProperty={countsByProperty}
-                        columnHeaders={columnHeaders}
-                        onClick={onClick}
-                    />
-                    <PaginationButtons
-                        page={page}
-                        hasMore={hasMore}
-                        handlePagination={handlePagination}
-                    />
+                <div className="flex flex-1 flex-col justify-between overflow-x-hidden min-h-full">
+                    <div className="flex-1">
+                        <TableCard
+                            countByProperty={countsByProperty}
+                            columnHeaders={columnHeaders}
+                            onClick={onClick}
+                        />
+                    </div>
+                    <div className="flex justify-end mt-auto">
+                        <PaginationButtons
+                            page={page}
+                            hasMore={hasMore}
+                            handlePagination={handlePagination}
+                        />
+                    </div>
                 </div>
             ) : null}
         </Card>

@@ -5,3 +5,15 @@ export interface SearchFilters {
     country?: string;
     browserName?: string;
 }
+
+export type MetricData = {
+    views: number;
+    visits: number;
+    visitors: number;
+};
+
+export type MetricChange = {
+    value: string | number;
+    percentage: string;
+    isIncreased: boolean | null;
+};

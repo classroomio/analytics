@@ -3,7 +3,6 @@ import {
     TableBody,
     TableCell,
     TableHead,
-    TableHeader,
     TableRow,
 } from "~/components/ui/table";
 
@@ -17,7 +16,7 @@ function calculateCountPercentages(countByProperty: CountByProperty) {
 
     return countByProperty.map((row) => {
         const count = parseInt(row[1]);
-        const percentage = ((count / totalCount) * 100).toFixed(2);
+        const percentage = ((count / totalCount) * 100).toFixed(0);
         return `${percentage}%`;
     });
 }
@@ -31,38 +30,30 @@ export default function TableCard({
     onClick?: (key: string) => void;
 }) {
     const barChartPercentages = calculateCountPercentages(countByProperty);
-
     const countFormatter = Intl.NumberFormat("en", { notation: "compact" });
 
-    const gridCols =
-        (columnHeaders || []).length === 3
-            ? "grid-cols-[minmax(0,1fr),minmax(0,8ch),minmax(0,8ch)]"
-            : "grid-cols-[minmax(0,1fr),minmax(0,8ch)]";
-
     return (
-        <Table>
-            <TableHeader>
-                <TableRow className={`${gridCols}`}>
-                    {(columnHeaders || []).map((header: string, index) => (
+        <Table className="w-full p-3">
+            <TableRow className="flex items-center p-2 font-semibold">
+                <TableHead className="font-semibold w-[50%] capitalize ">
+                    {columnHeaders[0]}
+                </TableHead>
+                <div className="flex items-center  min-w-[30%]">
+                    {columnHeaders.slice(1).map((header) => (
                         <TableHead
                             key={header}
-                            className={
-                                index === 0
-                                    ? "text-left"
-                                    : "text-right pr-4 pl-0"
-                            }
+                            className="text-center  font-semibold capitalize w-full"
                         >
                             {header}
                         </TableHead>
                     ))}
-                </TableRow>
-            </TableHeader>
+                </div>
+                <TableHead className="relative font-semibold w-[20%]" />
+            </TableRow>
+
             <TableBody>
                 {(countByProperty || []).map((item, index) => {
                     const desc = item[0];
-
-                    // the description can be either a single string (that is both the key and the label),
-                    // or a tuple of type [key, label]
                     const [key, label] = Array.isArray(desc)
                         ? [desc[0], desc[1] || "(none)"]
                         : [desc, desc || "(none)"];
@@ -70,10 +61,9 @@ export default function TableCard({
                     return (
                         <TableRow
                             key={item[0]}
-                            className={`group [&_td]:last:rounded-b-md ${gridCols}`}
-                            width={barChartPercentages[index]}
+                            className="flex items-center justify-between p-2 h-full"
                         >
-                            <TableCell className="font-medium min-w-48 break-all">
+                            <TableCell className="w-[50%]">
                                 {onClick ? (
                                     <button
                                         onClick={() => onClick(key as string)}
@@ -85,18 +75,45 @@ export default function TableCard({
                                     label
                                 )}
                             </TableCell>
-
-                            <TableCell className="text-right min-w-16">
-                                {countFormatter.format(parseInt(item[1], 10))}
-                            </TableCell>
-
-                            {item.length > 2 && item[2] !== undefined && (
-                                <TableCell className="text-right min-w-16">
-                                    {countFormatter.format(
-                                        parseInt(item[2], 10),
-                                    )}
+                            <div className="flex items-center justify-center font-semibold min-w-[30%]  flex-1">
+                                <TableCell className="flex items-center justify-center w-full flex-1">
+                                    <div className="w-full text-center">
+                                        <p className="text-sm w-full">
+                                            {countFormatter.format(
+                                                parseInt(item[1], 10),
+                                            )}
+                                        </p>
+                                    </div>
                                 </TableCell>
-                            )}
+                                <>
+                                    {item.length > 2 &&
+                                        item[2] !== undefined && (
+                                            <TableCell className="flex items-center justify-center w-full flex-1">
+                                                <div className="w-full text-center">
+                                                    <p className="text-sm w-full">
+                                                        {countFormatter.format(
+                                                            parseInt(
+                                                                item[2],
+                                                                10,
+                                                            ),
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </TableCell>
+                                        )}
+                                </>
+                            </div>
+                            <TableCell className="border-l border-black w-[20%] relative">
+                                <div
+                                    className="absolute inset-0 bg-blue-300/30"
+                                    style={{
+                                        width: barChartPercentages[index],
+                                    }}
+                                />
+                                <span className="relative z-10 text-sm text-center block">
+                                    {barChartPercentages[index]}
+                                </span>
+                            </TableCell>
                         </TableRow>
                     );
                 })}
