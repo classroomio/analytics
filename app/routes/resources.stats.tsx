@@ -92,7 +92,7 @@ export const StatsCard = ({
                         key={label}
                         className="flex flex-col gap-2 items-center text-center capitalize"
                     >
-                        <p className="font-bold text-sm text-gray-500 tracking-wide">
+                        <p className="font-bold text-sm tracking-wide">
                             {label}
                         </p>
                         <p className="font-bold text-xl md:text-3xl">
